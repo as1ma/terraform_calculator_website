@@ -1,4 +1,10 @@
-# main.tf
+/* 
+
+#Creates App Service App on Linux
+
+*/
+
+
 # Generate a random integer to create a (globally) unique name
 resource "random_string" "id" {
   length  = 4
@@ -8,40 +14,39 @@ resource "random_string" "id" {
   upper   = false
 }
 
-# Resource Group - groups resources for easier management
+# create a resource group
 resource "azurerm_resource_group" "example" {
   name     = "rg-example-${random_string.id.result}"
-  location = "uksouth"
+  location = var.location
 }
 
-# App Service plan - defines the set of compute resources to run on (money, money, money)
+# App Service plan - manages an App Service: Service Plan.
 resource "azurerm_service_plan" "example" {
   name                = "plan-example-${random_string.id.result}"
   location            = azurerm_resource_group.example.location
   resource_group_name = azurerm_resource_group.example.name
-  os_type             = "Linux"
-  sku_name            = "F1" # Free!
+  os_type             = "Linux" #The O/S type for the App Services to be hosted in this plan. Other values inlcude Windows and WindowsContainer
+  sku_name            = "Free" # Free SKU plan
 }
 
-# App Service - Linux-based web app configuration
+# App Service - Manages a Linux Web App. Creates the web app. Passes in the App Service Plan ID
 resource "azurerm_linux_web_app" "example" {
-  name                = "app-example-${random_string.id.result}"
+  name                = "webapp-example-${random_string.id.result}"
   location            = azurerm_resource_group.example.location
   resource_group_name = azurerm_resource_group.example.name
-  service_plan_id     = azurerm_service_plan.example.id
-  https_only          = true
+  service_plan_id     = azurerm_service_plan.example.id #The ID of the Service Plan that this Linux App Service will be created in.
+  # https_only          = true #Should the Linux Web App require HTTPS connections.
 
   site_config {
-    always_on         = false
-    use_32_bit_worker = true
+    always_on         = false #always_on must be explicitly set to false when using free service plans
 
     application_stack {
-      node_version = "16-lts"
+      node_version = "18-lts"
     }
   }
 }
 
-# Deployment centre - deploy code from a public GitHub repo
+# Deploy code from a public GitHub repo
 resource "azurerm_app_service_source_control" "example" {
   app_id                 = azurerm_linux_web_app.example.id
   repo_url               = var.repo_url
